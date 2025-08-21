@@ -1,0 +1,106 @@
+# =========================
+# General / editors / OS
+# =========================
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# Make / C / C++ artifacts
+# =========================
+*.o
+*.a
+*.so
+*.so.*
+*.lo
+*.la
+*.d
+*.out
+*.obj
+*.dll
+*.exe
+
+# =========================
+# Linux kernel module build
+# =========================
+# Common kbuild outputs
+*.mod
+*.mod.c
+*.mod.o
+*.ko
+*.ko.*
+*.order
+modules.order
+Module.symvers
+modules.builtin
+modules.builtin.modinfo
+
+# Kbuild work dirs/files
+.tmp_versions/
+*.symvers
+.*.cmd
+*.cmd
+*.gcno
+*.gcda
+*.dwo
+*.lto.o
+*.lto.json
+*.lto.vmlinux
+
+# Misc kbuild caches
+*.unsigned
+*.o.d
+*.o.cmd
+*.ko.cmd
+*.mod.cmd
+*.symversions
+*.order.cmd
+
+# =========================
+# Go (modules / builds / tests)
+# =========================
+# Binaries (by 'go build', 'go install', or custom Makefile targets)
+bin/
+build/
+dist/
+out/
+*.test
+
+# Test results & coverage
+*.cover
+*.coverprofile
+coverage.*
+coverage/
+cover.out
+
+# Profiling & traces
+cpu.pprof
+mem.pprof
+block.pprof
+mutex.pprof
+trace.out
+
+# Go build caches (should be outside repo, but ignore just in case)
+*.exe
+*.dll
+*.dylib
+
+# Logs & temp
+*.log
+*.tmp
+tmp/
+*.bak
+
+# Optional: ignore go.work & go.work.sum if you don't want to commit workspace files.
+# Uncomment if desired.
+# go.work
+# go.work.sum
+
+# Optional: vendored deps (only ignore if you don't commit vendor/)
+# vendor/
+
+go-pci-lib
