@@ -8,15 +8,33 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <stdint.h>
-
-
+#include <x86intrin.h>
 
 #define WR_VALUE _IOW('a', 'a', __uint64_t *)
 #define RD_VALUE _IOR('a', 'b', __uint64_t *)
 #define MAP_ADDR _IOW('a', 'c', __uint64_t *)
 
+static uint64_t measure_access_time(uint8_t *addr)
+{
+    uint64_t start, end;
+    uint32_t unused;
 
-#define ARR_SZ(a)      (sizeof(a) / sizeof(*a))
+    _mm_mfence();
+    _mm_lfence();
+
+    start = __rdtscp(&unused);
+    _mm_lfence();
+
+    *(volatile char *)addr;
+
+    _mm_lfence();
+
+    end = __rdtscp(&unused);
+
+    _mm_mfence();
+
+    return end - start;
+}
 
 static void hex_dump(const uint8_t *data, size_t length) {
     size_t i;
@@ -56,9 +74,10 @@ int main()
     size_t buffer = 4096;
     void* addr = mmap(NULL, buffer, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    printf("Memory mapped at address %p\n", addr);
+    printf("Access time: %lu CPU cycles\n", measure_access_time((uint8_t*)addr));
+    printf("Bytes: 0x%08x", *((uint32_t*)addr));
 
-    hex_dump((const uint8_t*)addr, buffer);
+    //hex_dump((const uint8_t*)addr, buffer);
 
     munmap(addr, buffer);
     close(fd);

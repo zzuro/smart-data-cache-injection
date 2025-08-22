@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -25,7 +26,7 @@ func print_status(status genTLP.CompletionStatus) {
 	}
 }
 
-func createAndSendTLP(rw *screamer.TLPController, reqID genTLP.DeviceID, addr uint64, tag uint8, maxLen uint32) {
+func createAndSendReadRequest(rw *screamer.TLPController, reqID genTLP.DeviceID, addr uint64, tag uint8, maxLen uint32) {
 	tlp, err := genTLP.NewMRd(reqID, tag, addr, maxLen)
 	if err != nil {
 		log.Fatal(err)
@@ -52,6 +53,17 @@ func createAndSendTLP(rw *screamer.TLPController, reqID genTLP.DeviceID, addr ui
 		fmt.Print(hex.Dump(data.Data[:data.DataLength()]))
 		fmt.Print("\n")
 	}
+}
+
+func createAndSendWriteRequest(rw *screamer.TLPController, reqID genTLP.DeviceID, addr uint64, data []byte) {
+	tlp, err := genTLP.NewMWr(reqID, addr, data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rw.Write(tlp.ToBytes())
+
+	// No response for write requests
 }
 
 func main() {
@@ -87,14 +99,22 @@ func main() {
 
 	addr := uint64(0xfd990000)
 	tag := uint8(0x15)
-	createAndSendTLP(rw, reqID, addr, tag, 0x100)
+	createAndSendReadRequest(rw, reqID, addr, tag, 0x100)
 
-	/*
-		tlp, err := genTLP.NewMWr(reqID, i, []byte{0xff, 0xff, 0xff, 0xff})
-			if err != nil {
-				log.Fatal(err)
-			}
-			rw.Write(tlp.ToBytes())
-	*/
+	data := make([]byte, 4)
+	_, err = rand.Read(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Invert the order of the bytes before printing
+	inv := make([]byte, len(data))
+	for i := range data {
+		inv[i] = data[len(data)-1-i]
+	}
+
+	fmt.Printf("Random Data (hex): 0x%s\n", hex.EncodeToString(inv))
+
+	createAndSendWriteRequest(rw, reqID, addr, data)
 
 }

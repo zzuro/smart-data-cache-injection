@@ -98,7 +98,7 @@ static int init_custom_dma_address(void)
     custom_dma_mapping[0].iova = 0xFD990000;
     custom_dma_mapping[0].flags = IOMMU_READ | IOMMU_WRITE;
     custom_dma_mapping[0].buffer.size = KB(4);
-    custom_dma_mapping[0].buffer.vaddr = kmalloc(custom_dma_mapping[0].buffer.size, GFP_KERNEL);
+    custom_dma_mapping[0].buffer.vaddr = kmalloc(custom_dma_mapping[0].buffer.size, GFP_KERNEL); // no cache-coherent allocation
     if (custom_dma_mapping[0].buffer.vaddr)
     {
         memset((void*)custom_dma_mapping[0].buffer.vaddr, 0xAB, custom_dma_mapping[0].buffer.size); // Fill with test byte 0xAB
