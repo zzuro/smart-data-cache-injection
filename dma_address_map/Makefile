@@ -3,10 +3,15 @@ obj-m += dma_address_mapper.o
 PWD := $(CURDIR)
 
 all:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+	sudo make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+	gcc um.c -o um
+
+um:
+	gcc um.c -o um
 
 clean:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+	sudo make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+	sudo rmmod dma_address_mapper
 
 insmod: all
 	sudo insmod dma_address_mapper.ko
