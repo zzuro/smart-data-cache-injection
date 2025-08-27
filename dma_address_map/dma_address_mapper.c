@@ -11,6 +11,7 @@
 #include <linux/device.h>
 #include <linux/kdev_t.h>
 #include <linux/fs.h>
+#include <linux/pci-ats.h>
 
 #include "defs.h"
 
@@ -43,7 +44,7 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
                 pr_err("Failed to copy data from user space\n");
                 return -EFAULT;
             }
-            pr_info("Mapping address: 0x%lx\n", addr);
+            pr_info("Mapping address: 0x%llx\n", addr);
             break;
         default:
             pr_info("CMD not found!\n");
@@ -98,7 +99,7 @@ static int init_custom_dma_address(void)
     custom_dma_mapping[0].iova = 0xFD990000;
     custom_dma_mapping[0].flags = IOMMU_READ | IOMMU_WRITE;
     custom_dma_mapping[0].buffer.size = KB(4);
-    custom_dma_mapping[0].buffer.vaddr = kmalloc(custom_dma_mapping[0].buffer.size, GFP_KERNEL); // no cache-coherent allocation
+    custom_dma_mapping[0].buffer.vaddr = kmalloc(custom_dma_mapping[0].buffer.size, GFP_KERNEL);
     if (custom_dma_mapping[0].buffer.vaddr)
     {
         memset((void*)custom_dma_mapping[0].buffer.vaddr, 0xAB, custom_dma_mapping[0].buffer.size); // Fill with test byte 0xAB
@@ -184,6 +185,13 @@ static int __init dma_mapper_init(void)
     {
         pr_err("Failed to enable PCI device\n");
         return -ENODEV;
+    }
+
+    if(!pci_ats_supported(dev))
+    {
+        pr_info("Device does not support ATS\n");
+    }else{
+        pr_info("Device supports ATS\n");
     }
 
     if (init_custom_dma_address() < 0)

@@ -4,10 +4,10 @@ PWD := $(CURDIR)
 
 all:
 	sudo make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
-	gcc um.c -o um
+	gcc um.c -o um ../go-pci-lib/libgopci.so -march=native
 
 um: um.c
-	gcc um.c -o um -march=native
+	gcc um.c -o um ../go-pci-lib/libgopci.so -march=native
 
 clean:
 	sudo make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean

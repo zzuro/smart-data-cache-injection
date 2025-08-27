@@ -10,9 +10,13 @@
 #include <stdint.h>
 #include <x86intrin.h>
 
+#include "../go-pci-lib/libgopci.h"
+
 #define WR_VALUE _IOW('a', 'a', __uint64_t *)
 #define RD_VALUE _IOR('a', 'b', __uint64_t *)
 #define MAP_ADDR _IOW('a', 'c', __uint64_t *)
+
+#define ITERATIONS 100
 
 static uint64_t measure_access_time(uint8_t *addr)
 {
@@ -73,11 +77,32 @@ int main()
 
     size_t buffer = 4096;
     void* addr = mmap(NULL, buffer, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (addr == MAP_FAILED)
+    {
+        printf("Mapping Failed\n");
+        return -1;
+    }
 
-    printf("Access time: %lu CPU cycles\n", measure_access_time((uint8_t*)addr));
-    printf("Bytes: 0x%08x", *((uint32_t*)addr));
+    // Initial read to populate cache
+    for(int i = 0; i < ITERATIONS; i++)
+    {
+        measure_access_time((uint8_t*)addr);   
+    }
 
-    //hex_dump((const uint8_t*)addr, buffer);
+    __uint64_t time = 0;
+    __uint32_t res = 0;
+    for(int i = 0; i < ITERATIONS; i++)
+    {
+        res = writeRandomData();
+        time += measure_access_time((uint8_t*)addr);
+        if(res != *((uint32_t*)addr))
+        {
+            printf("Data mismatch! Expected: 0x%08x, Got: 0x%08x\n", res, *((uint32_t*)addr));
+        }
+    }
+    
+    printf("Access time: %lu CPU cycles\n", time / ITERATIONS);
+    //printf("Bytes: 0x%08x \n", *((uint32_t*)addr));
 
     munmap(addr, buffer);
     close(fd);
