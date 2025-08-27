@@ -37,19 +37,19 @@ func NewMWr(reqID DeviceID, addr uint64, data []byte) (*MWr, error) {
 	}
 
 	tlp.ReqID = reqID
-	tlp.Tag = 0
+	tlp.Tag = 0 //When HT set, than TAG -> Sterring Tag
 	tlp.TH = true
 
 	tlp.setByteEnables()
 
-	//tlp.TH = true
-	//tlp.NS = true
-	//tlp.RO = true
-	/* 	tlp.LN = true */
+	tlp.NS = true
+	tlp.RO = true
+	tlp.IBO = false
+	tlp.Address = Address((addr &^ 0x3) | 0x1) // Indicates frequent read and/or write access to data by device
 
 	tlp.AT = DefaultUntranslated
 
-	fmt.Printf("Write to Address: %x\n", tlp.Address)
+	//fmt.Printf("Write to Address: %x\n", tlp.Address)
 
 	tlp.Data = make([]byte, len(data))
 	copy(tlp.Data, data)
