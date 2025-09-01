@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +11,7 @@
 #include <sys/mman.h>
 #include <stdint.h>
 #include <x86intrin.h>
+#include <sched.h>
 
 #include "../go-pci-lib/libgopci.h"
 
@@ -82,6 +85,13 @@ int main()
         printf("Mapping Failed\n");
         return -1;
     }
+
+    int cpu = sched_getcpu();
+    if (cpu == -1) {
+        perror("sched_getcpu");
+        return 1;
+    }
+    printf("Running on CPU: %d\n", cpu);
 
     // Initial read to populate cache
     for(int i = 0; i < ITERATIONS; i++)

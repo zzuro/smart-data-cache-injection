@@ -12,6 +12,7 @@
 #include <linux/kdev_t.h>
 #include <linux/fs.h>
 #include <linux/pci-ats.h>
+//#include <linux/pci-tph.h>  
 
 #include "defs.h"
 
@@ -97,7 +98,7 @@ static int init_custom_dma_address(void)
 
     // address range FD_0000_0000h - FF_FFFF_FFFFh, inclusive, have special meanings, dont use them: https://kib.kiev.ua/x86docs/AMD/IOMMU/48882-2.00.pdf p. 31
     custom_dma_mapping[0].iova = 0xFD990000;
-    custom_dma_mapping[0].flags = IOMMU_READ | IOMMU_WRITE;
+    custom_dma_mapping[0].flags = IOMMU_READ | IOMMU_WRITE | IOMMU_CACHE;
     custom_dma_mapping[0].buffer.size = KB(4);
     custom_dma_mapping[0].buffer.vaddr = kmalloc(custom_dma_mapping[0].buffer.size, GFP_KERNEL);
     if (custom_dma_mapping[0].buffer.vaddr)
@@ -193,6 +194,9 @@ static int __init dma_mapper_init(void)
     }else{
         pr_info("Device supports ATS\n");
     }
+
+    pcie_enable_tph(dev, PCI_TPH_ST_DS_MODE);
+
 
     if (init_custom_dma_address() < 0)
     {

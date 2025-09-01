@@ -106,3 +106,5 @@ tmp/
 go-pci-lib
 
 um
+
+dma_address_map/kernel_headers
