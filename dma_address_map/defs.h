@@ -17,7 +17,7 @@
 #define MB(x) (_ul(x) << 20)
 #define GB(x) (_ul(x) << 30)
 
-
+#ifdef DMA_MAPPER_KERNEL
 typedef struct buffer {
     volatile void* vaddr;  // Virtual address of the buffer
     __u64 paddr;  // Physical address of the buffer
@@ -29,3 +29,5 @@ typedef struct mapping {
     buffer_t buffer;        // Buffer information
     __u64 flags;            // Flags for the mapping (e.g., read/write permissions)
 } mapping_t;
+
+#endif

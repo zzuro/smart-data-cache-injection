@@ -17,9 +17,9 @@
 
 #define WR_VALUE _IOW('a', 'a', __uint64_t *)
 #define RD_VALUE _IOR('a', 'b', __uint64_t *)
-#define MAP_ADDR _IOW('a', 'c', __uint64_t *)
+#define ST_CPUID _IOW('a', 'c', __uint16_t *)
 
-#define ITERATIONS 100
+#define ITERATIONS 50
 
 static uint64_t measure_access_time(uint8_t *addr)
 {
@@ -43,23 +43,31 @@ static uint64_t measure_access_time(uint8_t *addr)
     return end - start;
 }
 
-static void hex_dump(const uint8_t *data, size_t length) {
+static void hex_dump(const uint8_t *data, size_t length)
+{
     size_t i;
-    for (i = 0; i < length; i += 16) {
-       
+    for (i = 0; i < length; i += 16)
+    {
+
         printf("%08zx  ", i);
 
-        for (size_t j = 0; j < 16; j++) {
-            if (i + j < length) {
+        for (size_t j = 0; j < 16; j++)
+        {
+            if (i + j < length)
+            {
                 printf("%02x ", data[i + j]);
-            } else {
-                printf("   "); 
             }
-            if (j == 7) printf(" "); 
+            else
+            {
+                printf("   ");
+            }
+            if (j == 7)
+                printf(" ");
         }
 
         printf(" |");
-        for (size_t j = 0; j < 16 && i + j < length; j++) {
+        for (size_t j = 0; j < 16 && i + j < length; j++)
+        {
             uint8_t c = data[i + j];
             printf("%c", (c >= 32 && c <= 126) ? c : '.');
         }
@@ -67,9 +75,44 @@ static void hex_dump(const uint8_t *data, size_t length) {
     }
 }
 
-
-int main()
+static uint16_t get_tag(int fd, uint8_t wrong_cpu)
 {
+    int cpu = sched_getcpu();
+    if (cpu == -1)
+    {
+        perror("sched_getcpu");
+        return 0;
+    }
+
+    if (wrong_cpu)
+    {
+        cpu += 10;
+    }
+
+    uint16_t tag = (uint16_t)cpu;
+    if (ioctl(fd, ST_CPUID, &tag) < 0)
+    {
+        printf("IOCTL ST_CPUID Failed\n");
+        return 0;
+    }
+
+    return tag;
+}
+
+int main(int argc, char *argv[])
+{
+    uint8_t wrong_cpu = 0;
+    uint8_t no_ph = 0;
+    if (argc > 1 && strcmp(argv[1], "no_tag") == 0)
+    {
+        wrong_cpu = 1;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "no_th") == 0)
+    {
+        no_ph = 1;
+    }
+
     int fd;
     fd = open("/dev/mapper_dev", O_RDWR);
     if (fd < 0)
@@ -79,42 +122,49 @@ int main()
     }
 
     size_t buffer = 4096;
-    void* addr = mmap(NULL, buffer, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    void *addr = mmap(NULL, buffer, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (addr == MAP_FAILED)
     {
         printf("Mapping Failed\n");
         return -1;
     }
 
-    int cpu = sched_getcpu();
-    if (cpu == -1) {
-        perror("sched_getcpu");
-        return 1;
-    }
-    printf("Running on CPU: %d\n", cpu);
-
     // Initial read to populate cache
-    for(int i = 0; i < ITERATIONS; i++)
+    for (int i = 0; i < ITERATIONS; i++)
     {
-        measure_access_time((uint8_t*)addr);   
+        measure_access_time((uint8_t *)addr);
     }
 
     __uint64_t time = 0;
     __uint32_t res = 0;
-    for(int i = 0; i < ITERATIONS; i++)
+    if (!no_ph)
     {
-        res = writeRandomData();
-        time += measure_access_time((uint8_t*)addr);
-        if(res != *((uint32_t*)addr))
+        for (int i = 0; i < ITERATIONS; i++)
         {
-            printf("Data mismatch! Expected: 0x%08x, Got: 0x%08x\n", res, *((uint32_t*)addr));
+            res = sdci(get_tag(fd, wrong_cpu));
+            usleep(5000); // wait for request to be processed
+            time += measure_access_time((uint8_t *)addr);
+            if (res != *((uint32_t *)addr))
+            {
+                printf("Data mismatch! Expected: 0x%08x, Got: 0x%08x\n", res, *((uint32_t *)addr));
+            }
         }
     }
-    
+    else
+    {
+        for (int i = 0; i < ITERATIONS; i++)
+        {
+            res = writeRandomData();
+            time += measure_access_time((uint8_t *)addr);
+            if (res != *((uint32_t *)addr))
+            {
+                printf("Data mismatch! Expected: 0x%08x, Got: 0x%08x\n", res, *((uint32_t *)addr));
+            }
+        }
+    }
+
     printf("Access time: %lu CPU cycles\n", time / ITERATIONS);
-    //printf("Bytes: 0x%08x \n", *((uint32_t*)addr));
 
     munmap(addr, buffer);
     close(fd);
-
 }

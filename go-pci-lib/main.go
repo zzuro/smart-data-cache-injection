@@ -81,12 +81,7 @@ func createAndSendWriteRequest(rw *screamer.TLPController, reqID genTLP.DeviceID
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	//print_packet(tlp.ToBytes())
-
 	rw.Write(tlp.ToBytes())
-
-	// No response for write requests
 }
 
 /*
@@ -119,7 +114,7 @@ func writeRandomData() uint32 {
 	rw := screamer.NewTLPController(devs[0], logger)
 
 	reqID := genTLP.DeviceID{
-		Bus:      0x81,
+		Bus:      0xe1,
 		Device:   0x00,
 		Function: 0x00,
 	}
@@ -136,6 +131,59 @@ func writeRandomData() uint32 {
 
 	createAndSendWriteRequest(rw, reqID, addr, data)
 
+	return value
+}
+
+//export sdci
+func sdci(tag uint16) uint32 {
+	logger, _ := zap.NewDevelopment(
+		zap.IncreaseLevel(zap.ErrorLevel), // only logs Error or higher
+	)
+	defer logger.Sync() // flushes buffer
+
+	// Enumerates and opens all screamer devices
+	devs, err := screamer.OpenScreamers(logger.Named("Screamer"))
+	if err != nil {
+		logger.Error("failed to open devices", zap.Error(err))
+	}
+	// Closes screammaers on exit.
+	defer func() {
+		for _, d := range devs {
+			d.Close()
+		}
+	}()
+
+	if len(devs) == 0 {
+		log.Fatal("device not found")
+	}
+
+	rw := screamer.NewTLPController(devs[0], logger)
+
+	reqID := genTLP.DeviceID{
+		Bus:      0xe1,
+		Device:   0x00,
+		Function: 0x00,
+	}
+
+	addr := uint64(0xfd990000)
+
+	data := make([]byte, 4)
+	_, err = rand.Read(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	value := uint32(data[3])<<24 | uint32(data[2])<<16 | uint32(data[1])<<8 | uint32(data[0])
+
+	tlp, err := genTLP.NewMWr(reqID, addr, data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tlp.Address = genTLP.Address((addr &^ 0x3) | 0x2) // Indicates frequent read and/or write access to data by device
+	tlp.TH = true
+	tlp.Tag = uint8(tag)
+	rw.Write(tlp.ToBytes())
 	return value
 }
 
@@ -163,9 +211,9 @@ func main() {
 	rw := screamer.NewTLPController(devs[0], logger)
 
 	// Build memory read TLP.
-	//81:00.0 Ethernet controller: Xilinx Corporation Device 0666 (rev 02)
+	//e1:00.0 Ethernet controller: Xilinx Corporation Device 0666 (rev 02)
 	reqID := genTLP.DeviceID{
-		Bus:      0x81,
+		Bus:      0xe1,
 		Device:   0x00,
 		Function: 0x00,
 	}

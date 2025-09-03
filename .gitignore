@@ -107,4 +107,6 @@ go-pci-lib
 
 um
 
+profile_cache
+
 dma_address_map/kernel_headers

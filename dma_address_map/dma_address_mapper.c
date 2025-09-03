@@ -5,21 +5,23 @@
 #include <linux/iommu.h>
 #include <linux/ioctl.h>
 #include <linux/cdev.h>
-#include <linux/uaccess.h>              
+#include <linux/uaccess.h>
 #include <linux/ioctl.h>
 #include <linux/err.h>
 #include <linux/device.h>
 #include <linux/kdev_t.h>
 #include <linux/fs.h>
 #include <linux/pci-ats.h>
-//#include <linux/pci-tph.h>  
+#include <linux/pci-tph.h>
 
+#define DMA_MAPPER_KERNEL
 #include "defs.h"
 
 #define DEVICE_NAME "mapper_dev"
 #define WR_VALUE _IOW('a', 'a', __u64 *)
 #define RD_VALUE _IOR('a', 'b', __u64 *)
-#define MAP_ADDR _IOW('a', 'c', __u64 *)
+#define ST_CPUID _IOW('a', 'c', __u16 *)
+#define GET_PHYS_ADDR _IOW('a', 'd', __u64 *)
 
 static dev_t ioclt_dev = 0;
 static struct class *dev_class;
@@ -32,24 +34,53 @@ static mapping_t *custom_dma_mapping = NULL; // Pointer to the custom DMA mappin
 
 static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-    switch(cmd)
+    switch (cmd)
     {
-        case WR_VALUE:
-            break;
-        case RD_VALUE:
-            break;
-        case MAP_ADDR:
-            __u64 addr;
-            if (copy_from_user(&addr, (void __user *)arg, sizeof(addr)))
-            {
-                pr_err("Failed to copy data from user space\n");
-                return -EFAULT;
-            }
-            pr_info("Mapping address: 0x%llx\n", addr);
-            break;
-        default:
-            pr_info("CMD not found!\n");
-            break;
+    case WR_VALUE:
+        break;
+    case RD_VALUE:
+        break;
+    case ST_CPUID:
+        __u16 cpuid;
+        if (copy_from_user(&cpuid, (void __user *)arg, sizeof(cpuid)))
+        {
+            pr_err("Failed to copy data from user space\n");
+            return -EFAULT;
+        }
+
+        __u16 tag;
+        dev->tph_req_type = PCI_TPH_REQ_TPH_ONLY;
+        dev->tph_enabled = 1;
+        int tph_ret = pcie_tph_get_cpu_st(dev, TPH_MEM_TYPE_VM, (int)cpuid, &tag);
+        if (tph_ret < 0) {
+            pr_err("Failed to get TPH tag: %d\n", tph_ret);
+            return tph_ret;
+        }
+
+        if (copy_to_user((void __user *)arg, &tag, sizeof(tag))) {
+            pr_err("Failed to copy tag to user space\n");
+            return -EFAULT;
+        }
+        
+        break;
+
+    case GET_PHYS_ADDR:
+        __u64 addr;
+        if (copy_from_user(&addr, (void __user *)arg, sizeof(addr)))
+        {
+            pr_err("Failed to copy data from user space\n");
+            return -EFAULT;
+        }
+        __u64 phys_addr = virt_to_phys((void *)addr);
+
+        if (copy_to_user((void __user *)arg, &phys_addr, sizeof(phys_addr))) {
+            pr_err("Failed to copy physical address to user space\n");
+            return -EFAULT;
+        }
+        break;
+    default:
+        pr_info("CMD not found!\n");
+        break;
     }
 
     return 0;
@@ -57,7 +88,7 @@ static long etx_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 static int ext_map(struct file *file, struct vm_area_struct *vma)
 {
-    if(!custom_dma_mapping)
+    if (!custom_dma_mapping)
     {
         pr_err("No buffer allocated for mapping\n");
         return -EINVAL;
@@ -103,7 +134,7 @@ static int init_custom_dma_address(void)
     custom_dma_mapping[0].buffer.vaddr = kmalloc(custom_dma_mapping[0].buffer.size, GFP_KERNEL);
     if (custom_dma_mapping[0].buffer.vaddr)
     {
-        memset((void*)custom_dma_mapping[0].buffer.vaddr, 0xAB, custom_dma_mapping[0].buffer.size); // Fill with test byte 0xAB
+        memset((void *)custom_dma_mapping[0].buffer.vaddr, 0xAB, custom_dma_mapping[0].buffer.size); // Fill with test byte 0xAB
     }
     custom_dma_mapping[0].buffer.paddr = virt_to_phys(custom_dma_mapping[0].buffer.vaddr);
 
@@ -174,7 +205,7 @@ static int __init dma_mapper_init(void)
         return -ENOMEM;
     }
 
-    // 81:00.0 Ethernet controller [0200]: Xilinx Corporation Device [10ee:0666] (rev 02)
+    // e1:00.0 Ethernet controller [0200]: Xilinx Corporation Device [10ee:0666] (rev 02)
     dev = pci_get_device(0x10EE, 0x0666, NULL);
     if (!dev)
     {
@@ -187,17 +218,7 @@ static int __init dma_mapper_init(void)
         pr_err("Failed to enable PCI device\n");
         return -ENODEV;
     }
-
-    if(!pci_ats_supported(dev))
-    {
-        pr_info("Device does not support ATS\n");
-    }else{
-        pr_info("Device supports ATS\n");
-    }
-
-    pcie_enable_tph(dev, PCI_TPH_ST_DS_MODE);
-
-
+    
     if (init_custom_dma_address() < 0)
     {
         pr_err("Failed to initialize custom DMA address\n");

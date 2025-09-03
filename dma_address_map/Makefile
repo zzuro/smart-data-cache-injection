@@ -9,6 +9,9 @@ all:
 um: um.c
 	gcc um.c -o um ../go-pci-lib/libgopci.so -march=native
 
+profile_cache: profile_cache.c
+	gcc profile_cache.c -o profile_cache -march=native
+
 clean:
 	sudo make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 	sudo rmmod dma_address_mapper || true
