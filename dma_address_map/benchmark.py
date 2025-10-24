@@ -7,16 +7,16 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 CSV_FILE = "benchmark_results.csv"
-IMG_FILE = "benchmark_bar_diagram.png"
+IMG_FILE = "benchmark_bar_diagram.pdf"
 
 cores = [2, 4, 6, 8, 10]
 args = ["", "no_tag", "no_th"]
 ITER = 100
 
 labels = {
-    "": "With tag and TH",
-    "no_tag": "Without tag",
-    "no_th": "Without TH"
+    "": "SDCI enabled",
+    "no_tag": "SDCI with wrong steering tag",
+    "no_th": "SDCI without TH bit"
 }
 
 cycles = {arg: [] for arg in args}
@@ -65,6 +65,8 @@ def plot_results():
     x = range(len(cores))
     fig, ax = plt.subplots()
 
+    colors = ["#4E79A7", "#76B7B2", "#59A14F"]  
+
     for idx, arg in enumerate(args):
         medians = []
         for core in cores:
@@ -74,13 +76,20 @@ def plot_results():
             else:
                 median_val = 0
             medians.append(median_val)
-        ax.bar([i + idx * bar_width for i in x], medians, width=bar_width, label=labels[arg])
+        ax.bar([i + idx * bar_width for i in x], medians, width=bar_width, label=labels[arg], color=colors[idx])
 
     ax.set_xlabel("Core")
     ax.set_ylabel("CPU cycles")
-    ax.set_title("Cache Access Time")
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    #ax.set_title("Cache Access Time")
     ax.set_xticks([i + bar_width for i in x])
     ax.set_xticklabels([str(core) for core in cores])
+
+    ax.set_yticks(range(0, 800, 100))
+
     ax.legend()
 
     plt.tight_layout()

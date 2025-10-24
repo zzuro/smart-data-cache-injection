@@ -37,7 +37,7 @@ func NewMWr(reqID DeviceID, addr uint64, data []byte) (*MWr, error) {
 	}
 
 	tlp.ReqID = reqID
-	tlp.Tag = 0 //When HT set, than TAG -> Sterring Tag
+	tlp.Tag = 0 //When HT set, than TAG -> Steering Tag
 	tlp.TH = false
 
 	tlp.setByteEnables()
