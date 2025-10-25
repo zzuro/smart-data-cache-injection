@@ -260,7 +260,6 @@ void write_all_levels_port(u8 instance, u8 func, u16 reg, u32 lo)
 }
 
 bool use_smn = false;
-
 static void print_base_and_limit(uint32_t number)
 {
 
@@ -308,58 +307,20 @@ static void spoof_dram_limit(void)
 
 static void spoof_base_and_limit(uint32_t number)
 {
-    if (number == 4)
-    {
-        // uint64_t addr = 0xd1227000;
-        // uint64_t base = 0xd0000000 >> 16;
-        // uint64_t limit = 0xd7fe0000 >> 16;
 
-        // uint64_t base =  0x100000000 >> 16;
-        // uint64_t limit = 0x1ffffffff >> 16;
+    uint64_t base = 0x100000000 >> 16;
+    uint64_t limit = 0x1ffffffff >> 16;
 
-        // __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOBASEADDRESS_0_REG + 0x10 * number, 0x20, base);
-        // __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOLIMITADDRESS_0_REG + 0x10 * number, 0x20, limit);
+    __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOBASEADDRESS_0_REG + 0x10 * number, 0x20, base);
+    __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOLIMITADDRESS_0_REG + 0x10 * number, 0x20, limit);
 
-        MMIO_ADDRESS_CONTROL_REGISTER control;
-        __df_indirect_read_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOADDRESSCONTROL_0_REG + 0x10 * number, 0x20, &control.Value);
+    MMIO_ADDRESS_CONTROL_REGISTER control;
+    __df_indirect_read_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOADDRESSCONTROL_0_REG + 0x10 * number, 0x20, &control.Value);
 
-        control.Field.RE = 1;
-        control.Field.WE = 1;
-        control.Field.DstFabricID = 0x77;
-        __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOADDRESSCONTROL_0_REG + 0x10 * number, 0x20, control.Value);
-    }
-
-    // if (number == 17 && false)
-    // {
-    //     uint64_t addr =  0x115e9e000;
-    //     uint64_t base =  0x100000000 >> 16;
-    //     uint64_t limit = 0x1ffffffff >> 16;
-
-    //     __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOBASEADDRESS_0_REG + 0x10 * number, 0x20, base);
-    //     __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOLIMITADDRESS_0_REG + 0x10 * number, 0x20, limit);
-
-    //     MMIO_ADDRESS_CONTROL_REGISTER control;
-    //     __df_indirect_read_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOADDRESSCONTROL_0_REG + 0x10 * number, 0x20, &control.Value);
-
-    //     control.Field.RE = 1;
-    //     control.Field.WE = 1;
-    //     control.Field.DstFabricID = 0x03;
-
-    //     __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOADDRESSCONTROL_0_REG + 0x10 * number, 0x20, control.Value);
-
-    //     // //Set CCM0 to CSBLOCK
-    //     // __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOBASEADDRESS_0_REG + 0x10 * number, 0x10, base);
-    //     // __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOLIMITADDRESS_0_REG + 0x10 * number, 0x10, limit);
-
-    //     // control.Value = 0;
-    //     // __df_indirect_read_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOADDRESSCONTROL_0_REG + 0x10 * number, 0x10, &control.Value);
-
-    //     // control.Field.RE = 1;
-    //     // control.Field.WE = 1;
-    //     // control.Field.DstFabricID = 0x03;
-
-    //     // __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOADDRESSCONTROL_0_REG + 0x10 * number, 0x10, control.Value);
-    // }
+    control.Field.RE = 1;
+    control.Field.WE = 1;
+    control.Field.DstFabricID = 0x03;
+    __df_indirect_write_BIOS_OS(0, MMIOADDRESSCONTROL_15_FUNC, MMIOADDRESSCONTROL_0_REG + 0x10 * number, 0x20, control.Value);
 }
 
 static int __init df_tmr_init(void)
