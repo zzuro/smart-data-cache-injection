@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
             }
         }
     }
-    printf("CPU cycles: %lu\n", time / ITERATIONS);
+    printf("Access time: %lu CPU cycles\n", time / ITERATIONS);
     munmap(addr, buffer);
     close(fd);
 }
